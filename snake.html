@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Snake Game</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+        }
+        canvas {
+            border: 2px solid black;
+        }
+        #score {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            font-size: 20px;
+            font-weight: bold;
+        }
+        #gameOver {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 30px;
+            font-weight: bold;
+            color: red;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="score">Score: 0</div>
+    <canvas id="gameCanvas" width="400" height="400"></canvas>
+    <div id="gameOver">Game Over!</div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const gridSize = 20;
+        const canvasSize = 400;
+        let snake = [{ x: 200, y: 200 }];
+        let snakeDirection = 'RIGHT';
+        let nextDirection = 'RIGHT';
+        let food = generateFood();
+        let score = 0;
+        let gameOver = false;
+        let redWall = generateRedWall();
+        let redWallChangeInterval = 5000; // Czas w ms na zmianę pozycji czerwonej ściany
+        let lastRedWallChange = Date.now();
+
+        document.addEventListener('keydown', changeDirection);
+        setInterval(gameLoop, 200);
+
+        function gameLoop() {
+            if (gameOver) return;
+            update();
+            draw();
+        }
+
+        function update() {
+            snakeDirection = nextDirection;
+            moveSnake();
+            checkFood();
+            checkRedWall();
+            moveRedWall();
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvasSize, canvasSize);
+
+            // Rysowanie węża
+            ctx.fillStyle = 'green';
+            for (let segment of snake) {
+                ctx.fillRect(segment.x, segment.y, gridSize, gridSize);
+            }
+
+            // Rysowanie jedzenia
+            ctx.fillStyle = 'green';
+            ctx.fillRect(food.x, food.y, gridSize, gridSize);
+
+            // Rysowanie czerwonej ściany
+            ctx.fillStyle = 'red';
+            for (let wallSegment of redWall) {
+                ctx.fillRect(wallSegment.x, wallSegment.y, gridSize, gridSize);
+            }
+
+            document.getElementById('score').textContent = 'Score: ' + score;
+            if (gameOver) {
+                document.getElementById('gameOver').style.display = 'block';
+            }
+        }
+
+        function moveSnake() {
+            const head = { ...snake[0] };
+            if (snakeDirection === 'UP') head.y -= gridSize;
+            if (snakeDirection === 'DOWN') head.y += gridSize;
+            if (snakeDirection === 'LEFT') head.x -= gridSize;
+            if (snakeDirection === 'RIGHT') head.x += gridSize;
+
+            // Odbicia od ścian
+            if (head.x < 0) head.x = canvasSize - gridSize;
+            else if (head.x >= canvasSize) head.x = 0;
+            if (head.y < 0) head.y = canvasSize - gridSize;
+            else if (head.y >= canvasSize) head.y = 0;
+
+            snake.unshift(head);
+
+            // Jeżeli wąż jest za długi, usuwamy ogon
+            if (snake.length > score + 1) {
+                snake.pop();
+            }
+        }
+
+        function checkFood() {
+            if (snake[0].x === food.x && snake[0].y === food.y) {
+                score++;
+                snake.push({ x: snake[snake.length - 1].x, y: snake[snake.length - 1].y });
+                food = generateFood();
+            }
+        }
+
+        function generateFood() {
+            let newFood;
+            do {
+                newFood = {
+                    x: Math.floor(Math.random() * (canvasSize / gridSize)) * gridSize,
+                    y: Math.floor(Math.random() * (canvasSize / gridSize)) * gridSize,
+                };
+            } while (snake.some(segment => segment.x === newFood.x && segment.y === newFood.y));
+            return newFood;
+        }
+
+        function generateRedWall() {
+            // Wybieramy losowo jedną ze ścian (górną, dolną, lewą lub prawą)
+            const wallSide = Math.floor(Math.random() * 4);
+            let wall = [];
+            if (wallSide === 0) { // Górna ściana
+                for (let x = 0; x < canvasSize; x += gridSize) {
+                    wall.push({ x, y: 0 });
+                }
+            } else if (wallSide === 1) { // Dolna ściana
+                for (let x = 0; x < canvasSize; x += gridSize) {
+                    wall.push({ x, y: canvasSize - gridSize });
+                }
+            } else if (wallSide === 2) { // Lewa ściana
+                for (let y = 0; y < canvasSize; y += gridSize) {
+                    wall.push({ x: 0, y });
+                }
+            } else { // Prawa ściana
+                for (let y = 0; y < canvasSize; y += gridSize) {
+                    wall.push({ x: canvasSize - gridSize, y });
+                }
+            }
+            return wall;
+        }
+
+        function moveRedWall() {
+            if (Date.now() - lastRedWallChange > redWallChangeInterval) {
+                redWall = generateRedWall();
+                lastRedWallChange = Date.now(); // Zaktualizuj czas ostatniej zmiany
+            }
+        }
+
+        function checkRedWall() {
+            for (let wallSegment of redWall) {
+                if (snake[0].x === wallSegment.x && snake[0].y === wallSegment.y) {
+                    gameOver = true;
+                    break;
+                }
+            }
+        }
+
+        function changeDirection(event) {
+            if (gameOver) return;
+            if (event.key === 'ArrowUp' && snakeDirection !== 'DOWN') nextDirection = 'UP';
+            if (event.key === 'ArrowDown' && snakeDirection !== 'UP') nextDirection = 'DOWN';
+            if (event.key === 'ArrowLeft' && snakeDirection !== 'RIGHT') nextDirection = 'LEFT';
+            if (event.key === 'ArrowRight' && snakeDirection !== 'LEFT') nextDirection = 'RIGHT';
+        }
+    </script>
+</body>
+</html>
