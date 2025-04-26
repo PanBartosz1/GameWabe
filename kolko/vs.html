@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kółko i Krzyżyk</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+  <style>
+    .game-container {
+      max-width: 300px;
+      margin: 2rem auto;
+      text-align: center;
+    }
+    .board-row {
+      display: flex;
+    }
+    .board-cell {
+      flex: 1;
+      aspect-ratio: 1 / 1;
+      border: 1px solid #ccc;
+      font-size: 2rem;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+    }
+    .board-cell:hover {
+      background: #fafafa;
+    }
+    #gameMessage {
+      margin-top: 1rem;
+      font-weight: bold;
+    }
+    #restartBtn {
+      margin-top: 1rem;
+    }
+  </style>
+</head>
+<body>
+  <section class="section">
+    <div class="container has-text-centered">
+      <h1 class="title">Kółko i Krzyżyk</h1>
+      <h2 class="subtitle">Dwóch graczy: X i O</h2>
+      <div class="game-container">
+        <div id="board" class="board">
+          <div class="board-row">
+            <div class="board-cell" data-index="0"></div>
+            <div class="board-cell" data-index="1"></div>
+            <div class="board-cell" data-index="2"></div>
+          </div>
+          <div class="board-row">
+            <div class="board-cell" data-index="3"></div>
+            <div class="board-cell" data-index="4"></div>
+            <div class="board-cell" data-index="5"></div>
+          </div>
+          <div class="board-row">
+            <div class="board-cell" data-index="6"></div>
+            <div class="board-cell" data-index="7"></div>
+            <div class="board-cell" data-index="8"></div>
+          </div>
+        </div>
+        <div id="gameMessage"></div>
+        <button class="button is-primary is-fullwidth" id="restartBtn" style="display: none;">Restart</button>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    let board = Array(9).fill('');
+    let currentPlayer = 'X';
+    let gameActive = true;
+
+    const winningCombinations = [
+      [0, 1, 2],
+      [3, 4, 5],
+      [6, 7, 8],
+      [0, 3, 6],
+      [1, 4, 7],
+      [2, 5, 8],
+      [0, 4, 8],
+      [2, 4, 6]
+    ];
+
+    const gameMessage = document.getElementById('gameMessage');
+    const restartBtn = document.getElementById('restartBtn');
+    const cells = document.querySelectorAll('.board-cell');
+
+    function showMessage(msg) {
+      gameMessage.textContent = msg;
+    }
+
+    function checkGameState() {
+      for (let combination of winningCombinations) {
+        const [a, b, c] = combination;
+        if (board[a] && board[a] === board[b] && board[a] === board[c]) {
+          showMessage(`Gracz ${board[a]} wygrał!`);
+          gameActive = false;
+          restartBtn.style.display = 'block';
+          return;
+        }
+      }
+      if (!board.includes('')) {
+        showMessage('Remis!');
+        gameActive = false;
+        restartBtn.style.display = 'block';
+        return;
+      }
+      currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+      showMessage(`Teraz ruch gracza: ${currentPlayer}`);
+    }
+
+    function cellClick(e) {
+      const index = e.target.getAttribute('data-index');
+      if (!gameActive || board[index]) return;
+
+      board[index] = currentPlayer;
+      e.target.textContent = currentPlayer;
+      checkGameState();
+    }
+
+    function resetGame() {
+      board.fill('');
+      currentPlayer = 'X';
+      gameActive = true;
+      cells.forEach(cell => (cell.textContent = ''));
+      restartBtn.style.display = 'none';
+      showMessage(`Teraz ruch gracza: ${currentPlayer}`);
+    }
+
+    cells.forEach(cell => cell.addEventListener('click', cellClick));
+    restartBtn.addEventListener('click', resetGame);
+
+    // Start
+    showMessage(`Teraz ruch gracza: ${currentPlayer}`);
+  </script>
+</body>
+</html>
